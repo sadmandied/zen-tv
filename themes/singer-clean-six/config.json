@@ -1,0 +1,18 @@
+﻿{
+  "columns": 6,
+  "rows_below_dock": 1,
+  "dock_apps": [
+    "com.mediatek.wwtv.tvcenter",
+    "com.google.android.youtube.tv",
+    "com.gotipath.deeptotvapp",
+    "org.jellyfin.androidtv",
+    "org.smarttube.stable",
+    "org.localsend.localsend_app"
+  ],
+  "fill_dock": true,
+  "reorder_button": true,
+  "app_library": true,
+  "sky_intensity": 50,
+  "background_color": "#070A14",
+  "wallpaper": true
+}

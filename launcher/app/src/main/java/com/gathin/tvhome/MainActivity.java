@@ -173,6 +173,20 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private boolean fillDockLeavesSlots;
     private AppLibraryDialog appLibrary;
     private boolean libraryFocusPending;
+    private android.widget.ImageView wallpaperView;
+    private android.graphics.Bitmap defaultWallpaperBmp;
+    private boolean dockTitle;
+    private boolean showcaseActive = false;
+    private final android.os.Handler showcaseHandler = new android.os.Handler(android.os.Looper.getMainLooper());
+    private final Runnable showcaseCycleRunnable = new Runnable() {
+        @Override
+        public void run() {
+            if (showcaseActive && lastFocused >= 0 && lastFocused < COLUMNS) {
+                cycleShowcaseMovie(lastFocused, true);
+                showcaseHandler.postDelayed(this, 7000);
+            }
+        }
+    };
     private RecyclerView.OnScrollListener pendingFocusScroll;
 
     private final Handler handler = new Handler(Looper.getMainLooper());
@@ -247,6 +261,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         advancedEffects = cfg.animations && cfg.advancedEffects;
         reducedMotion = cfg.reducedMotion;
         dockRow = cfg.dockRow;
+        dockTitle = cfg.dockTitle;
         festival = cfg.festival;
         festive = festival.active(LocalDate.now());
         liveTvPkg = cfg.liveTvPackage;
@@ -257,7 +272,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
         root = findViewById(R.id.root);
         root.setBackgroundColor(cfg.backgroundColor);
-        if (cfg.wallpaper != null) showWallpaper(cfg.wallpaper);
+        if (cfg.wallpaperEnabled) {
+            if (cfg.wallpaper != null) {
+                showWallpaper(cfg.wallpaper);
+            } else {
+                showWallpaper(R.drawable.wallpaper_default);
+            }
+        }
         sky = findViewById(R.id.sky);
         sky.setIntensity(cfg.skyIntensity);
         glass = findViewById(R.id.glass);
@@ -427,7 +448,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             open(systemIntent(Settings.ACTION_WIFI_SETTINGS));
             return true;
         });
-        btnSettings.setOnClickListener(v -> open(systemIntent(Settings.ACTION_SETTINGS)));
+        btnSettings.setOnClickListener(v -> open(settingsKeyPanel ? new Intent(this, QuickSettingsActivity.class) : systemIntent(Settings.ACTION_SETTINGS)));
         btnReorder = findViewById(R.id.btnReorder);
         btnReorder.setOnClickListener(v -> toggleReorder());
         btnReorder.setVisibility(cfg.reorderButton ? View.VISIBLE : View.GONE);
@@ -503,6 +524,38 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
      * costs a screen-sized bitmap (about 4 MB at 1080p), which is the price of a wallpaper on a 1 GB TV.
      * A picture over 4K is refused rather than decoded (#166); the plain colour stays.
      */
+    private void showWallpaper(int resId) {
+        try {
+            android.util.DisplayMetrics dm = getResources().getDisplayMetrics();
+            android.graphics.BitmapFactory.Options opts = new android.graphics.BitmapFactory.Options();
+            opts.inJustDecodeBounds = true;
+            android.graphics.BitmapFactory.decodeResource(getResources(), resId, opts);
+            int w = opts.outWidth, h = opts.outHeight;
+            if (w <= 0 || h <= 0) return;
+            int sample = WallpaperSize.sampleSize(w, h, dm.widthPixels, dm.heightPixels);
+            if (!WallpaperSize.accepted(w / sample, h / sample)) return;
+            opts.inJustDecodeBounds = false;
+            opts.inSampleSize = sample;
+            int[] scale = WallpaperSize.coverScale(w / sample, h / sample, dm.widthPixels, dm.heightPixels);
+            if (scale != null) {
+                opts.inScaled = true;
+                opts.inDensity = scale[0];
+                opts.inTargetDensity = scale[1];
+            }
+            opts.inPreferredConfig = android.graphics.Bitmap.Config.RGB_565;
+            android.graphics.Bitmap bmp = android.graphics.BitmapFactory.decodeResource(getResources(), resId, opts);
+            if (bmp == null) return;
+            defaultWallpaperBmp = bmp;
+            if (wallpaperView == null) {
+                wallpaperView = new android.widget.ImageView(this);
+                wallpaperView.setScaleType(android.widget.ImageView.ScaleType.CENTER_CROP);
+                root.addView(wallpaperView, 0, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+            }
+            wallpaperView.setImageBitmap(bmp);
+        } catch (Exception | OutOfMemoryError e) {
+        }
+    }
+
     private void showWallpaper(File file) {
         try {
             android.util.DisplayMetrics dm = getResources().getDisplayMetrics();
@@ -525,10 +578,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             opts.inPreferredConfig = android.graphics.Bitmap.Config.RGB_565;   // no alpha needed, half the memory
             android.graphics.Bitmap bmp = android.graphics.BitmapFactory.decodeFile(file.getPath(), opts);
             if (bmp == null) return;
-            android.widget.ImageView wall = new android.widget.ImageView(this);
-            wall.setScaleType(android.widget.ImageView.ScaleType.CENTER_CROP);
-            wall.setImageBitmap(bmp);
-            root.addView(wall, 0, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+            defaultWallpaperBmp = bmp;
+            if (wallpaperView == null) {
+                wallpaperView = new android.widget.ImageView(this);
+                wallpaperView.setScaleType(android.widget.ImageView.ScaleType.CENTER_CROP);
+                root.addView(wallpaperView, 0, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+            }
+            wallpaperView.setImageBitmap(bmp);
         } catch (Exception | OutOfMemoryError e) {
             // A bad or huge picture must never take the home screen down; the plain colour stays.
         }
@@ -670,6 +726,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     @Override
     protected void onPause() {
         super.onPause();
+        stopShowcaseAutoCycle();
         endReorder();   // Home or another app while reordering keeps the order so far
         stopAmbientAnimation();
         heroName.animate().cancel();
@@ -997,7 +1054,108 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     // ---- top shelf -------------------------------------------------------------------------------
 
+    private void setWallpaperBitmap(android.graphics.Bitmap bmp) {
+        if (wallpaperView != null && bmp != null && !bmp.isRecycled()) {
+            wallpaperView.setImageBitmap(bmp);
+        }
+    }
+
+    private void restoreDefaultWallpaper() {
+        if (wallpaperView != null && defaultWallpaperBmp != null && !defaultWallpaperBmp.isRecycled()) {
+            wallpaperView.setImageBitmap(defaultWallpaperBmp);
+        }
+    }
+
+    private boolean isJellyfinShowcase(int position) {
+        if (!dockRow || position < 0 || position >= COLUMNS) return false;
+        String key = adapter != null ? adapter.keyAt(position) : null;
+        return key != null && (key.startsWith(JellyfinShowcase.JELLYFIN_PKG + "/") || key.equals(JellyfinShowcase.JELLYFIN_PKG));
+    }
+
+    private void startShowcaseAutoCycle(int position) {
+        showcaseHandler.removeCallbacks(showcaseCycleRunnable);
+        showcaseHandler.postDelayed(showcaseCycleRunnable, 7000);
+    }
+
+    private void stopShowcaseAutoCycle() {
+        showcaseHandler.removeCallbacks(showcaseCycleRunnable);
+    }
+
+    private void cycleShowcaseMovie(int position, boolean forward) {
+        JellyfinShowcase sc = JellyfinShowcase.get(this);
+        if (!sc.hasMovies()) return;
+        JellyfinShowcase.Movie m = forward ? sc.cycleNext() : sc.cyclePrev();
+        if (m == null) return;
+
+        android.graphics.Bitmap tileBmp = sc.getCurrentTileBitmap(this);
+        if (tileBmp != null) {
+            android.graphics.drawable.Drawable d = new android.graphics.drawable.BitmapDrawable(getResources(), tileBmp);
+            adapter.updateTileBanner(position, d);
+            RecyclerView.ViewHolder vh = grid.findViewHolderForAdapterPosition(position);
+            if (vh != null) {
+                android.widget.ImageView bannerView = vh.itemView.findViewById(R.id.banner);
+                if (bannerView != null) bannerView.setImageDrawable(d);
+            }
+        }
+
+        android.util.DisplayMetrics dm = getResources().getDisplayMetrics();
+        android.graphics.Bitmap backdrop = sc.getCurrentBackdropBitmap(this, dm.widthPixels, dm.heightPixels);
+        if (backdrop != null) {
+            setWallpaperBitmap(backdrop);
+        }
+
+        if (heroName != null) {
+            heroName.setText(m.title);
+            heroName.setVisibility(View.VISIBLE);
+            heroName.setAlpha(1f);
+        }
+    }
+
     private void showHero(int position, float dockTopInRoot) {
+        boolean isShowcase = isJellyfinShowcase(position);
+        JellyfinShowcase sc = JellyfinShowcase.get(this);
+        if (isShowcase && sc.hasMovies()) {
+            showcaseActive = true;
+            JellyfinShowcase.Movie m = sc.getCurrentMovie();
+            String title = m != null ? m.title : adapter.labelAt(position);
+            heroName.setText(title);
+            heroName.setVisibility(View.VISIBLE);
+            heroName.setAlpha(1f);
+            heroName.setY(dockTopInRoot - 14 * density - 26 * density - heroName.getHeight());
+            heroShown = true;
+
+            android.util.DisplayMetrics dm = getResources().getDisplayMetrics();
+            android.graphics.Bitmap backdrop = sc.getCurrentBackdropBitmap(this, dm.widthPixels, dm.heightPixels);
+            if (backdrop != null) {
+                setWallpaperBitmap(backdrop);
+            }
+
+            android.graphics.Bitmap tileBmp = sc.getCurrentTileBitmap(this);
+            if (tileBmp != null) {
+                android.graphics.drawable.Drawable d = new android.graphics.drawable.BitmapDrawable(getResources(), tileBmp);
+                adapter.updateTileBanner(position, d);
+                RecyclerView.ViewHolder vh = grid.findViewHolderForAdapterPosition(position);
+                if (vh != null) {
+                    android.widget.ImageView bannerView = vh.itemView.findViewById(R.id.banner);
+                    if (bannerView != null) bannerView.setImageDrawable(d);
+                }
+            }
+
+            startShowcaseAutoCycle(position);
+            return;
+        }
+
+        if (showcaseActive) {
+            stopShowcaseAutoCycle();
+            restoreDefaultWallpaper();
+            showcaseActive = false;
+        }
+        if (!dockTitle) {
+            heroName.setVisibility(View.GONE);
+            heroShown = false;
+            return;
+        }
+
         String label = adapter.labelAt(position);
         int color = adapter.ambientColorAt(position);
         float y = dockTopInRoot - 14 * density - 26 * density - heroName.getHeight();
@@ -1137,6 +1295,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     }
 
     private void hideHero() {
+        if (showcaseActive) {
+            stopShowcaseAutoCycle();
+            restoreDefaultWallpaper();
+            if (!dockTitle) heroName.setVisibility(View.GONE);
+            showcaseActive = false;
+        }
         if (!heroShown) return;
         stopAmbientAnimation();
         heroName.animate().cancel();
@@ -1351,6 +1515,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     rtlAppGrid, keyCode == KeyEvent.KEYCODE_DPAD_LEFT);
         }
         if (keyCode == KeyEvent.KEYCODE_DPAD_UP) {
+            if (isJellyfinShowcase(position)) {
+                cycleShowcaseMovie(position, true);
+                startShowcaseAutoCycle(position);
+                grid.playSoundEffect(SoundEffectConstants.NAVIGATION_UP);
+                return true;
+            }
             if (position < COLUMNS) return false;          // dock row: let focus move to the top bar
             target = position - COLUMNS;
         } else {
@@ -1369,6 +1539,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     }
 
     @Override public void onLibraryFocused() {
+        if (showcaseActive) {
+            stopShowcaseAutoCycle();
+            restoreDefaultWallpaper();
+            if (!dockTitle) heroName.setVisibility(View.GONE);
+            showcaseActive = false;
+        }
         libraryFocusPending = false;
         hideGlass();
         hideHero();

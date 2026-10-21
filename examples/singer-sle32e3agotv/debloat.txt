@@ -1,0 +1,26 @@
+# Singer Smart TV 32" (SLE32E3AGOTV, board sunnyvale, manufacturer skyworth)
+# Android TV 14 (API 34), build UKNV.260125.001
+# Apply:   tools/disable.ps1 examples/singer-sle32e3agotv/debloat.txt
+# Undo:    tools/restore.ps1 examples/singer-sle32e3agotv/debloat.txt
+
+# Manufacturer (Skyworth / Coocaa) recommendation and demo services
+com.smartdevice.recommendation
+com.smartdevice.leanbacklauncher.customizer
+com.Smartdevice.emanual
+fusion.android.tv.demo
+com.mstar.android.tv.disclaimercustomization
+
+# Android ad services and telemetry
+com.android.adservices.api
+com.android.ondevicepersonalization.services
+com.android.federatedcompute.services
+com.google.android.feedback
+com.android.tv.feedbackconsent
+com.google.android.partnersetup
+
+# Recommendation channels and unneeded TV services
+com.google.android.tvrecommendations
+com.cltv.fast
+com.android.healthconnect.controller
+com.android.health.connect.backuprestore
+com.google.android.play.games

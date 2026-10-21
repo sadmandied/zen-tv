@@ -65,7 +65,7 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         final String label;
         final ComponentName component;
         final String pkg;
-        final Drawable banner;
+        Drawable banner;
         final Drawable icon;
         /** Text under the tile when it is focused in the grid: the label, plus the caption for a card. */
         final String name;
@@ -245,6 +245,10 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             String label = card != null ? card.label : Cards.cleanLabel(String.valueOf(ri.loadLabel(pm)), pkg);
             if (!seen.add(pkg + '\n' + label)) continue;
             Drawable banner = loadBanner(pm, ri);
+            if (pkg.equals(JellyfinShowcase.JELLYFIN_PKG) && JellyfinShowcase.get(ctx).hasMovies()) {
+                Drawable scBanner = JellyfinShowcase.get(ctx).getCurrentTileDrawable(ctx);
+                if (scBanner != null) banner = scBanner;
+            }
             Drawable icon = ri.loadIcon(pm);
             if (card != null) {
                 fresh.add(new Entry(Entry.CARD, label, component, banner, icon, card.caption, card.accent));
@@ -369,6 +373,10 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         h.card.setTranslationZ(focused && advancedEffects ? 8f * ctx.getResources().getDisplayMetrics().density : 0f);
         h.banner.setScaleX(focused && advancedEffects ? 1.035f : 1f);
         h.banner.setScaleY(focused && advancedEffects ? 1.035f : 1f);
+        if (e.pkg.equals(JellyfinShowcase.JELLYFIN_PKG) && JellyfinShowcase.get(ctx).hasMovies()) {
+            Drawable scBanner = JellyfinShowcase.get(ctx).getCurrentTileDrawable(ctx);
+            if (scBanner != null) e.banner = scBanner;
+        }
         if (e.banner != null) {
             h.banner.setImageDrawable(e.banner);
             h.banner.setVisibility(View.VISIBLE);
@@ -565,6 +573,12 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     /** Corner radius for a tile of this width: 16dp at the design width, proportionally less when smaller. */
     static float cornerRadius(int tileWidthPx, float density) {
         return 16f * density * Math.min(1f, tileWidthPx / (DESIGN_W_DP * density));
+    }
+
+    public void updateTileBanner(int position, Drawable drawable) {
+        if (position >= 0 && position < items.size()) {
+            items.get(position).banner = drawable;
+        }
     }
 
     static final class Holder extends RecyclerView.ViewHolder {

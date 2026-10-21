@@ -72,6 +72,8 @@ final class Config {
     final int[] settingsKeycodes;
     /** The Settings button opens the quick settings panel instead of the TV's Settings (settings_key_panel). */
     final boolean settingsKeyPanel;
+    /** Whether wallpaper is enabled. */
+    final boolean wallpaperEnabled;
     /** Full-screen picture behind the launcher, or null for the plain colour. */
     final File wallpaper;
     /** Whether the overlay file was present and parsed. */
@@ -84,7 +86,7 @@ final class Config {
                    int columns, int rowsBelowDock, boolean animations, boolean advancedEffects,
                    boolean shamsiDate, boolean moduleCards, boolean reducedMotion, boolean dockTitle, boolean dockRow, boolean reorderButton, String vpnApp,
                    boolean showHomeSettingsShortcut, boolean showStats, boolean appLibrary, int backgroundColor, int skyIntensity,
-                   int[] settingsKeycodes, boolean settingsKeyPanel, File wallpaper, boolean overlayApplied,
+                   int[] settingsKeycodes, boolean settingsKeyPanel, boolean wallpaperEnabled, File wallpaper, boolean overlayApplied,
                    Festival festival) {
         this.dockApps = Collections.unmodifiableList(dockApps);
         this.fillDock = fillDock;
@@ -112,6 +114,7 @@ final class Config {
         this.skyIntensity = skyIntensity;
         this.settingsKeycodes = settingsKeycodes;
         this.settingsKeyPanel = settingsKeyPanel;
+        this.wallpaperEnabled = wallpaperEnabled;
         this.wallpaper = wallpaper;
         this.overlayApplied = overlayApplied;
         this.festival = festival;
@@ -192,18 +195,31 @@ final class Config {
         if (chosenColumns >= 4 && chosenColumns <= 7) columns = chosenColumns;
         animations = choices.getBoolean("animations", animations);
         advancedEffects = choices.getBoolean("advanced_effects", advancedEffects);
-        File wallpaper = dir != null ? new File(dir, WALLPAPER_NAME) : null;
-        if (wallpaper != null && !(wallpaper.isFile() && wallpaper.length() > 0)) wallpaper = null;
-        // A theme can also switch the wallpaper off while the file is still there.
-        if (json != null && json.has("wallpaper") && !bool(json, "wallpaper", true)) wallpaper = null;
-        // A festive skin comes only from a theme; config.xml has no festival.
-        Festival festival = json == null ? Festival.NONE : Festival.parse(string(json, "festival", ""),
-                string(json, "festival_until", ""), string(json, "greeting", ""), string(json, "accent_color", ""));
+        boolean wallpaperEnabled = res.getBoolean(R.bool.wallpaper);
+        if (json != null && json.has("wallpaper")) {
+            wallpaperEnabled = bool(json, "wallpaper", wallpaperEnabled);
+        }
+        File wallpaper = null;
+        if (wallpaperEnabled) {
+            wallpaper = dir != null ? new File(dir, WALLPAPER_NAME) : null;
+            if (wallpaper == null || !(wallpaper.isFile() && wallpaper.length() > 0)) {
+                File sdcardWall = new File("/sdcard/wallpaper.jpg");
+                if (sdcardWall.isFile() && sdcardWall.length() > 0) {
+                    wallpaper = sdcardWall;
+                } else {
+                    File picWall = new File(android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_PICTURES), "wallpaper.jpg");
+                    if (picWall.isFile() && picWall.length() > 0) {
+                        wallpaper = picWall;
+                    }
+                }
+            }
+        }
+        Festival festival = Festival.NONE;
 
         return new Config(dock, fillDock, hidden, liveTv, liveTvAction, panelService, panelAction, inputAction,
                 Math.max(1, columns), Math.max(0, rowsBelow), animations, advancedEffects,
                 shamsi, moduleCards, reducedMotion, dockTitle, dockRow, reorderButton, vpn, homeSettings, showStats, library, background,
-                Math.max(0, Math.min(100, skyIntensity)), settingsKeycodes, settingsKeyPanel, wallpaper, applied,
+                Math.max(0, Math.min(100, skyIntensity)), settingsKeycodes, settingsKeyPanel, wallpaperEnabled, wallpaper, applied,
                 festival);
     }
 

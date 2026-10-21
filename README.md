@@ -1,3 +1,16 @@
+# zen-tv
+> **Minimalist Apple tvOS-Style Smart TV Launcher with Dynamic Jellyfin Movie Showcase**  
+> Custom build based on the open-source [CleanYourTV](https://github.com/Gathin23/cleanyourtv) architecture by [@Gathin23](https://github.com/Gathin23). All core debloating framework and launcher base credits belong to the original author and contributors.
+
+### Key Enhancements in `zen-tv`:
+* **Dynamic Jellyfin Movie Showcase (Slot 2):** Pulls from local Jellyfin library, features top-rated movies, dynamically changes launcher wallpaper to cinematic movie backdrops on hover, displays ratings on the top shelf in Apple SF Pro font, and supports D-pad Up cycling & auto-rotation.
+* **Apple SF Pro Display Typography:** Clean, modern Apple typography mapped across clock, date, greetings, quick settings, and metadata.
+* **Apple tvOS Minimal Organic Waves Wallpaper:** Dark obsidian fluid ribbon curves with OLED-friendly bottom 45% black fade for 100% dock contrast.
+* **Frosted Glass Quick Settings:** Instant dropdown overlay for TV Settings, Wi-Fi, Inputs, and Apps without leaving the home view.
+* **Singer Smart TV 32" (`SLE32E3AGOTV`) Profile:** Fully validated debloat configuration and 1-click restoration script.
+
+---
+
 <p align="center">
   <a href="https://cleanyour.tv"><img src="https://raw.githubusercontent.com/Gathin23/cleanyourtv/main/docs/banner.png" alt="CleanYourTV. Your TV, minus the ads." width="800"></a>
 </p>

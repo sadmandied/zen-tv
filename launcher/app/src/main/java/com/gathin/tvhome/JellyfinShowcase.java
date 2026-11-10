@@ -201,7 +201,7 @@ public final class JellyfinShowcase {
         try {
             if (file.exists() && file.canRead()) {
                 BitmapFactory.Options opts = new BitmapFactory.Options();
-                opts.inPreferredConfig = Bitmap.Config.RGB_565;
+                opts.inPreferredConfig = Bitmap.Config.ARGB_8888;
                 opts.inSampleSize = 1;
                 newBmp = BitmapFactory.decodeFile(file.getAbsolutePath(), opts);
             }
@@ -211,7 +211,7 @@ public final class JellyfinShowcase {
         if (newBmp == null && c != null) {
             try (InputStream is = c.getAssets().open("jellyfin_showcase/" + m.backdropFile)) {
                 BitmapFactory.Options opts = new BitmapFactory.Options();
-                opts.inPreferredConfig = Bitmap.Config.RGB_565;
+                opts.inPreferredConfig = Bitmap.Config.ARGB_8888;
                 opts.inSampleSize = 1;
                 newBmp = BitmapFactory.decodeStream(is, null, opts);
             } catch (Exception | OutOfMemoryError e) {

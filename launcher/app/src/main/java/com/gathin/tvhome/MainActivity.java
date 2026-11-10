@@ -542,7 +542,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 opts.inDensity = scale[0];
                 opts.inTargetDensity = scale[1];
             }
-            opts.inPreferredConfig = android.graphics.Bitmap.Config.RGB_565;
+            opts.inPreferredConfig = android.graphics.Bitmap.Config.ARGB_8888;
             android.graphics.Bitmap bmp = android.graphics.BitmapFactory.decodeResource(getResources(), resId, opts);
             if (bmp == null) return;
             defaultWallpaperBmp = bmp;
@@ -575,7 +575,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 opts.inDensity = scale[0];
                 opts.inTargetDensity = scale[1];
             }
-            opts.inPreferredConfig = android.graphics.Bitmap.Config.RGB_565;   // no alpha needed, half the memory
+            opts.inPreferredConfig = android.graphics.Bitmap.Config.ARGB_8888;
             android.graphics.Bitmap bmp = android.graphics.BitmapFactory.decodeFile(file.getPath(), opts);
             if (bmp == null) return;
             defaultWallpaperBmp = bmp;

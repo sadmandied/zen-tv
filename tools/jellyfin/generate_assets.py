@@ -81,39 +81,39 @@ for idx, m in enumerate(movies):
         
     bd_final.paste(overlay, (0, 0), overlay)
     bd_out_path = os.path.join(out_dir, f"backdrop_{idx}.jpg")
-    bd_final.save(bd_out_path, "JPEG", quality=85, optimize=True)
+    bd_final.save(bd_out_path, "JPEG", quality=96, optimize=True)
     
-    # 2. Process Tile Banner: 360x202 (16:9 banner)
+    # 2. Process High-Definition Tile Banner: 720x404 (2x Retina 16:9 banner)
     # Backdrop as background, center-cropped 16:9
-    tb = bd_scaled.resize((360, 202), Image.Resampling.LANCZOS)
+    tb = bd_scaled.resize((720, 404), Image.Resampling.LANCZOS)
     # Add subtle dark vignette
-    tb_dark = Image.new("RGBA", (360, 202), (0, 0, 0, 0))
+    tb_dark = Image.new("RGBA", (720, 404), (0, 0, 0, 0))
     tb_draw = ImageDraw.Draw(tb_dark)
     # Subtle gradient at bottom for text
-    for ty in range(120, 202):
-        a = int(180 * ((ty - 120) / (202 - 120)))
-        tb_draw.line([(0, ty), (360, ty)], fill=(0, 0, 0, a))
+    for ty in range(240, 404):
+        a = int(180 * ((ty - 240) / (404 - 240)))
+        tb_draw.line([(0, ty), (720, ty)], fill=(0, 0, 0, a))
     tb.paste(tb_dark, (0, 0), tb_dark)
     
-    # Add small poster on left side with rounded corners
+    # Add high-res poster on left side with rounded corners
     post_raw = Image.open(m["poster"]).convert("RGBA")
-    # Scale poster to height 170 (width ~115)
-    pw = int(170 * post_raw.width / post_raw.height)
-    post_scaled = post_raw.resize((pw, 170), Image.Resampling.LANCZOS)
+    # Scale poster to height 340 (width ~230)
+    pw = int(340 * post_raw.width / post_raw.height)
+    post_scaled = post_raw.resize((pw, 340), Image.Resampling.LANCZOS)
     
     # Create composite banner:
     # Blur the backdrop slightly on the tile so the poster and title pop!
-    tb_blur = tb.filter(ImageFilter.GaussianBlur(radius=3))
+    tb_blur = tb.filter(ImageFilter.GaussianBlur(radius=5))
     
-    banner_canvas = Image.new("RGBA", (360, 202), (10, 12, 18, 255))
+    banner_canvas = Image.new("RGBA", (720, 404), (10, 12, 18, 255))
     banner_canvas.paste(tb_blur, (0, 0))
     
-    # Paste poster at (16, 16)
-    banner_canvas.paste(post_scaled, (16, 16), post_scaled)
+    # Paste poster at (32, 32)
+    banner_canvas.paste(post_scaled, (32, 32), post_scaled)
     
     # Save tile banner
     tile_out_path = os.path.join(out_dir, f"tile_{idx}.jpg")
-    banner_canvas.convert("RGB").save(tile_out_path, "JPEG", quality=90, optimize=True)
+    banner_canvas.convert("RGB").save(tile_out_path, "JPEG", quality=96, optimize=True)
     
     movie_metadata.append({
         "id": m["id"],

@@ -1030,25 +1030,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             springY.animateToFinalPosition(y - glassScrollShift);
         }
         View item = (View) card.getParent();
-        if (adapter != null && adapter.isMovieShelfAt(position)) {
-            // Row 1: Dedicated Jellyfin Movie Shelf!
-            int movieIndex = adapter.getMovieIndexAt(position);
-            JellyfinShowcase.Movie m = JellyfinShowcase.get(this).getMovie(movieIndex);
-            if (m != null) {
-                showcaseActive = true;
-                heroName.setVisibility(View.GONE);
-                heroShown = false;
-
-                android.util.DisplayMetrics dm = getResources().getDisplayMetrics();
-                Bitmap backdrop = JellyfinShowcase.get(this).getBackdropBitmap(this, movieIndex, dm.widthPixels, dm.heightPixels);
-                if (backdrop != null) {
-                    setWallpaperBitmap(backdrop);
-                }
-            }
-            Rect want = new Rect(0, -(int) pad * 2, item.getWidth(), item.getHeight() + (int) pad);
-            grid.requestChildRectangleOnScreen(item, want, reducedMotion);
-        } else if (dockRow && position < COLUMNS) {
-            // Row 0: Dock row apps!
+        if (dockRow && position < COLUMNS) {
             if (showcaseActive) {
                 restoreDefaultWallpaper();
                 showcaseActive = false;
@@ -1064,7 +1046,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             }
             showHero(position, scroll ? r.top - dy : r.top);
         } else {
-            // Row 2: Other apps!
             if (showcaseActive) {
                 restoreDefaultWallpaper();
                 showcaseActive = false;

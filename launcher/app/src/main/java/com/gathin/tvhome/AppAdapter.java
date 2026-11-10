@@ -280,25 +280,13 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
                     new ComponentName(ctx, HomeSettingsActivity.class), null,
                     ctx.getDrawable(R.drawable.ic_home_settings), null, 0));
         }
+        // Free dock slots
         docked = 0;
         while (docked < fresh.size() && favourites.contains(fresh.get(docked).pkg)) docked++;
         emptySlots = dockRow && !reordering ? DockSlots.empty(docked, dockSize, fresh.size(), fillDock) : 0;
         for (int i = 0; i < emptySlots; i++) {
             fresh.add(docked + i, new Entry(Entry.EMPTY, "", new ComponentName(ctx, "empty-dock-slot-" + i),
                     null, null, null, 0));
-        }
-        // Insert dedicated Jellyfin Movies Shelf directly after the dock row (Row 1)
-        JellyfinShowcase sc = JellyfinShowcase.get(ctx);
-        if (sc.hasMovies()) {
-            int insertPos = Math.min(dockSize, fresh.size());
-            List<JellyfinShowcase.Movie> movies = sc.getMovies();
-            for (int i = 0; i < movies.size(); i++) {
-                JellyfinShowcase.Movie m = movies.get(i);
-                Bitmap tileBmp = sc.loadTileBitmap(ctx, m.tileFile);
-                Drawable banner = tileBmp != null ? new android.graphics.drawable.BitmapDrawable(ctx.getResources(), tileBmp) : null;
-                ComponentName comp = new ComponentName(JellyfinShowcase.JELLYFIN_PKG, "movie." + m.id);
-                fresh.add(insertPos + i, new Entry(Entry.JELLYFIN_MOVIE, m.name, comp, banner, null, m.year, 0, m.title, i));
-            }
         }
         items.clear();
         items.addAll(fresh);
@@ -380,9 +368,8 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         h.card.setFocusable(true);
         ViewGroup.MarginLayoutParams nameLp = (ViewGroup.MarginLayoutParams) h.name.getLayoutParams();
         int cardW = h.card.getLayoutParams().width;
-        int targetW = e.kind == Entry.JELLYFIN_MOVIE ? (int) (cardW * 1.6f) : cardW;
-        if (nameLp.width != targetW) {
-            nameLp.width = targetW;
+        if (nameLp.width != cardW) {
+            nameLp.width = cardW;
             h.name.setLayoutParams(nameLp);
         }
         h.name.setText(e.name);
@@ -410,7 +397,6 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         }
         h.card.setOnClickListener(v -> launch(e));
         h.card.setOnLongClickListener(v -> {
-            if (e.kind == Entry.JELLYFIN_MOVIE) return true;
             Intent i = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + e.pkg));
             i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             try {
@@ -426,23 +412,6 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         if (e.kind == Entry.HOME_SETTINGS) {
             ctx.startActivity(new Intent(ctx, HomeSettingsActivity.class)
                     .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
-            return;
-        }
-        if (e.kind == Entry.JELLYFIN_MOVIE) {
-            PackageManager pm = ctx.getPackageManager();
-            Intent i = pm.getLeanbackLaunchIntentForPackage(JellyfinShowcase.JELLYFIN_PKG);
-            if (i == null) i = pm.getLaunchIntentForPackage(JellyfinShowcase.JELLYFIN_PKG);
-            if (i != null) {
-                i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
-                try {
-                    ctx.startActivity(i);
-                    if (advancedEffects && ctx instanceof Activity) {
-                        ((Activity) ctx).overridePendingTransition(R.anim.app_open_enter, R.anim.app_open_exit);
-                    }
-                } catch (Exception ex) {
-                    Toast.makeText(ctx, ctx.getString(R.string.cant_open, e.label), Toast.LENGTH_SHORT).show();
-                }
-            }
             return;
         }
         Intent i = new Intent(Intent.ACTION_MAIN)
@@ -469,13 +438,11 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     int appCount() { return items.size(); }
 
     public boolean isMovieShelfAt(int position) {
-        return position >= 0 && position < items.size() && items.get(position).kind == Entry.JELLYFIN_MOVIE;
+        return false;
     }
 
     public int getMovieIndexAt(int position) {
-        if (position < 0 || position >= items.size()) return -1;
-        Entry e = items.get(position);
-        return e.kind == Entry.JELLYFIN_MOVIE ? e.movieIndex : -1;
+        return -1;
     }
 
     boolean isLibraryAt(int position) { return showLibrary && position == items.size(); }

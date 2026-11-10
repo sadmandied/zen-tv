@@ -1030,8 +1030,29 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             springY.animateToFinalPosition(y - glassScrollShift);
         }
         View item = (View) card.getParent();
-        if (dockRow && position < COLUMNS) {
-            // Dock: park it at the bottom of the screen and show the top shelf for this app.
+        if (adapter != null && adapter.isMovieShelfAt(position)) {
+            // Row 1: Dedicated Jellyfin Movie Shelf!
+            int movieIndex = adapter.getMovieIndexAt(position);
+            JellyfinShowcase.Movie m = JellyfinShowcase.get(this).getMovie(movieIndex);
+            if (m != null) {
+                showcaseActive = true;
+                heroName.setVisibility(View.GONE);
+                heroShown = false;
+
+                android.util.DisplayMetrics dm = getResources().getDisplayMetrics();
+                Bitmap backdrop = JellyfinShowcase.get(this).getBackdropBitmap(this, movieIndex, dm.widthPixels, dm.heightPixels);
+                if (backdrop != null) {
+                    setWallpaperBitmap(backdrop);
+                }
+            }
+            Rect want = new Rect(0, -(int) pad * 2, item.getWidth(), item.getHeight() + (int) pad);
+            grid.requestChildRectangleOnScreen(item, want, reducedMotion);
+        } else if (dockRow && position < COLUMNS) {
+            // Row 0: Dock row apps!
+            if (showcaseActive) {
+                restoreDefaultWallpaper();
+                showcaseActive = false;
+            }
             int decoratedTop = item.getTop() - (int) (6 * density);
             int dy = decoratedTop - grid.getPaddingTop();
             // A 1px mismatch used to start a scroll on every dock move. Only scroll when the row is
@@ -1043,7 +1064,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             }
             showHero(position, scroll ? r.top - dy : r.top);
         } else {
-            // A plain grid (dock_row false) has no dock to carry the glow, so it follows every tile there.
+            // Row 2: Other apps!
+            if (showcaseActive) {
+                restoreDefaultWallpaper();
+                showcaseActive = false;
+            }
             if (dockRow) hideHero();
             else showGlowOnly(position);
             // Scroll just enough so the whole glass (not only the tile) is visible.
@@ -1112,44 +1137,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     }
 
     private void showHero(int position, float dockTopInRoot) {
-        boolean isShowcase = isJellyfinShowcase(position);
-        JellyfinShowcase sc = JellyfinShowcase.get(this);
-        if (isShowcase && sc.hasMovies()) {
-            showcaseActive = true;
-            JellyfinShowcase.Movie m = sc.getCurrentMovie();
-            String title = m != null ? m.title : adapter.labelAt(position);
-            heroName.setText(title);
-            heroName.setVisibility(View.VISIBLE);
-            heroName.setAlpha(1f);
-            heroName.setY(dockTopInRoot - 14 * density - 26 * density - heroName.getHeight());
-            heroShown = true;
-
-            android.util.DisplayMetrics dm = getResources().getDisplayMetrics();
-            android.graphics.Bitmap backdrop = sc.getCurrentBackdropBitmap(this, dm.widthPixels, dm.heightPixels);
-            if (backdrop != null) {
-                setWallpaperBitmap(backdrop);
-            }
-
-            android.graphics.Bitmap tileBmp = sc.getCurrentTileBitmap(this);
-            if (tileBmp != null) {
-                android.graphics.drawable.Drawable d = new android.graphics.drawable.BitmapDrawable(getResources(), tileBmp);
-                adapter.updateTileBanner(position, d);
-                RecyclerView.ViewHolder vh = grid.findViewHolderForAdapterPosition(position);
-                if (vh != null) {
-                    android.widget.ImageView bannerView = vh.itemView.findViewById(R.id.banner);
-                    if (bannerView != null) bannerView.setImageDrawable(d);
-                }
-            }
-
-            startShowcaseAutoCycle(position);
-            return;
-        }
-
-        if (showcaseActive) {
-            stopShowcaseAutoCycle();
-            restoreDefaultWallpaper();
-            showcaseActive = false;
-        }
         if (!dockTitle) {
             heroName.setVisibility(View.GONE);
             heroShown = false;
@@ -1515,12 +1502,6 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     rtlAppGrid, keyCode == KeyEvent.KEYCODE_DPAD_LEFT);
         }
         if (keyCode == KeyEvent.KEYCODE_DPAD_UP) {
-            if (isJellyfinShowcase(position)) {
-                cycleShowcaseMovie(position, true);
-                startShowcaseAutoCycle(position);
-                grid.playSoundEffect(SoundEffectConstants.NAVIGATION_UP);
-                return true;
-            }
             if (position < COLUMNS) return false;          // dock row: let focus move to the top bar
             target = position - COLUMNS;
         } else {

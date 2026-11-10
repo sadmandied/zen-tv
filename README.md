@@ -1,18 +1,18 @@
 # zen-tv
 
 <p align="center">
-  <img src="docs/zen-tv/showcase_12angrymen.png" alt="zen-tv Jellyfin Showcase" width="850">
+  <img src="docs/zen-tv/final_default_home.png" alt="zen-tv Home Screen" width="850">
 </p>
 
 <p align="center">
-  <b>A minimalist, distraction-free Apple tvOS-inspired launcher for Android TV with a dynamic local Jellyfin Movie Showcase.</b>
+  <b>A minimalist, distraction-free Apple tvOS-inspired launcher for Android TV with a dedicated local Jellyfin Movies Shelf and Moody Nordic landscape aesthetic.</b>
 </p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/Android%20TV-14%20(API%2034)-3DDC84?style=flat&logo=android" alt="Android TV">
   <img src="https://img.shields.io/badge/Typography-Apple%20SF%20Pro-000000?style=flat&logo=apple" alt="Apple SF Pro">
   <img src="https://img.shields.io/badge/Integration-Jellyfin-00A4DC?style=flat&logo=jellyfin" alt="Jellyfin">
-  <img src="https://img.shields.io/badge/Aesthetic-tvOS%20Dark%20Waves-5856D6?style=flat" alt="tvOS Dark Waves">
+  <img src="https://img.shields.io/badge/Aesthetic-Moody%20Nordic%20Fog-2D4059?style=flat" alt="Moody Nordic Fog">
   <img src="https://img.shields.io/badge/License-MIT-success?style=flat" alt="MIT License">
 </p>
 
@@ -27,56 +27,46 @@
 
 ## Visual Showcase
 
-### 1. Dynamic Jellyfin Movie Showcase (Dock Slot 2)
-When hovering over the Jellyfin tile at Slot 2, the launcher transitions the full-screen background into that movie's cinematic backdrop and reveals the rating & title in Apple SF Pro font on the top shelf.
+### 1. 3-Row Clean Structure with Dedicated Jellyfin Movies Shelf
+The home screen is organized into an intentional 3-row hierarchy: Row 1 holds the primary Apps Dock, Row 2 provides a dedicated Jellyfin Movies Shelf, and Row 3 contains secondary apps.
 
-| Hovering on 12 Angry Men (★ 9.0) | Cycled to Avengers: Endgame (★ 8.4) |
+| Default Home (Apps Dock focused) | Dedicated Jellyfin Movie Shelf |
 |:---:|:---:|
-| <img src="docs/zen-tv/showcase_12angrymen.png" width="420"> | <img src="docs/zen-tv/showcase_avengers.png" width="420"> |
+| <img src="docs/zen-tv/final_default_home.png" width="420"> | <img src="docs/zen-tv/final_movie0_12angrymen.png" width="420"> |
 
-### 2. Apple tvOS Minimal Organic Waves & Quick Settings
-Moving focus away to Live TV or any other app immediately restores the default Apple tvOS Organic Waves wallpaper. The top-right settings pill opens an instant frosted glass overlay.
+### 2. Dynamic Backdrop Transitions on Movie Card Hover
+Navigating onto any movie card in Row 2 instantly transforms the launcher background into that movie's backdrop, pre-graded to OLED black at the bottom to maintain tile clarity. Moving focus to Row 1 or Row 3 restores the default Moody Nordic Forest Fog wallpaper.
 
-| Default Apple tvOS Wallpaper (Live TV) | Frosted Glass Quick Settings |
+| 12 Angry Men (★ 9.0) Backdrop | Avengers: Endgame (★ 8.4) Backdrop |
 |:---:|:---:|
-| <img src="docs/zen-tv/organic_waves.png" width="420"> | <img src="docs/zen-tv/quick_settings.png" width="420"> |
+| <img src="docs/zen-tv/final_movie0_12angrymen.png" width="420"> | <img src="docs/zen-tv/final_movie1_avengers.png" width="420"> |
 
 ---
 
 ## Features & Customizations
 
-### 🎬 Dynamic Jellyfin Movie Showcase (Slot 2)
-* **Local Library Extraction:** Automatically extracts and showcases top-rated movies directly from your local Jellyfin Media Server.
-* **Instant Hover Backdrop:** Focusing on Slot 2 transitions the launcher wallpaper into that movie's backdrop, pre-graded with an OLED-friendly 45% black gradient at the bottom so dock tiles remain 100% legible.
-* **Apple SF Pro Top Shelf Typography:** Displays community rating and movie metadata above the dock (e.g. `★ 9.0  12 Angry Men (1957)`).
-* **Interactive D-Pad Cycling & Auto-Rotation:**
-  * Press **`D-pad Up`** while focused on Slot 2 to manually cycle through your catalog.
-  * Auto-rotates every 7 seconds while hovering.
-* **Seamless Wallpaper Restoration:** Moving focus away to Live TV or any other app restores the Apple tvOS Organic Waves wallpaper.
-* **Direct App Launch:** Pressing **`OK`** on the tile boots directly into Jellyfin.
+### 🎬 Dedicated Jellyfin Movies Shelf (Row 2)
+* **Dedicated Row:** A full dedicated shelf of high-rated movies extracted directly from the local Jellyfin server.
+* **Instant Hover Backdrop:** Focusing on any movie card transforms the entire TV background into its high-res cinematic backdrop.
+* **OLED Black Contrast:** Backdrops are pre-graded with an OLED-friendly gradient from y=500 down, keeping all tiles and text perfectly legible.
+* **Seamless Restoration:** Navigating away to the Apps Dock (Row 1) or secondary apps (Row 3) immediately restores the default wallpaper.
+* **Direct Playback Launch:** Pressing **`OK`** on any movie card launches directly into Jellyfin.
 
-### 🌊 Apple tvOS Minimal Organic Waves Aesthetic
-* Custom-rendered 1080p silky ribbon curves in slate, dark sapphire, and subtle violet tones.
-* Deep obsidian bottom half preserves contrast and eliminates clutter.
+### 🌲 Moody Nordic Forest Fog Aesthetic
+* Minimalist cinematic Scandinavian pine forest silhouettes with rolling atmospheric fog and subtle twilight backlighting.
+* Solid obsidian fade across the bottom portion keeps dock tiles sharp and readable.
 
 ### 🔤 Apple SF Pro Display Typography
 * Authentic SF Pro Display typography integrated into the APK and mapped across:
-  * Top bar clock (`12:47 AM`), greeting, and date
+  * Top bar clock (`10:32 AM`), greeting, and date
   * Status pills (Inputs, Wi-Fi, Settings)
-  * Showcase ratings and titles
+  * Movie ratings and titles under each card
   * Quick Settings dropdown menu
 
-### 🪟 Frosted Glass Quick Settings
-* Instant dropdown overlay for TV Settings, Wi-Fi, Inputs, and Apps without leaving the home screen.
-
-### 📌 Clean Dock Layout
-Configured with an intentional 6-slot dock order:
-1. `Live TV` (`com.mediatek.wwtv.tvcenter`)
-2. `Jellyfin Movie Showcase` (`org.jellyfin.androidtv`)
-3. `Deepto Play` (`com.gotipath.deeptotvapp`)
-4. `SmartTube` (`org.smarttube.stable`)
-5. `YouTube` (`com.google.android.youtube.tv`)
-6. `LocalSend` (`org.localsend.localsend_app`)
+### 📌 Clean 3-Row Layout & Dock Order
+* **Row 1 (Apps Dock):** `Live TV`, `YouTube`, `Deepto Play`, `SmartTube`, `FLIX.LIVE` (DFlix), `LocalSend`
+* **Row 2 (Jellyfin Movies):** `12 Angry Men`, `Avengers: Endgame`, `Project Hail Mary`, `Bonolota Express`, `Uri: The Surgical Strike`, `Spider-Man: Brand New Day`
+* **Row 3 (Other Apps):** `Browser`, `Jellyfin` (native app), `Media`, `Google Play Store`, `Settings` (LeanKey Keyboard hidden)
 
 ### 📺 Singer Smart TV 32" (`SLE32E3AGOTV`) Profile
 * Tested and optimized for Android TV 14 on the Skyworth `sunnyvale` board with 1GB RAM.

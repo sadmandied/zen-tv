@@ -123,6 +123,15 @@ public final class JellyfinShowcase {
         return movies.size();
     }
 
+    public synchronized List<Movie> getMovies() {
+        return new ArrayList<>(movies);
+    }
+
+    public synchronized Movie getMovie(int index) {
+        if (index >= 0 && index < movies.size()) return movies.get(index);
+        return null;
+    }
+
     public synchronized int getCurrentIndex() {
         return currentIndex;
     }
@@ -177,12 +186,16 @@ public final class JellyfinShowcase {
     }
 
     public synchronized Bitmap getCurrentBackdropBitmap(Context ctx, int displayWidth, int displayHeight) {
-        Movie m = getCurrentMovie();
-        if (m == null) return null;
-        if (loadedBackdropIndex == currentIndex && currentBackdropBmp != null && !currentBackdropBmp.isRecycled()) {
+        return getBackdropBitmap(ctx, currentIndex, displayWidth, displayHeight);
+    }
+
+    public synchronized Bitmap getBackdropBitmap(Context ctx, int movieIndex, int displayWidth, int displayHeight) {
+        if (movieIndex < 0 || movieIndex >= movies.size()) return null;
+        if (loadedBackdropIndex == movieIndex && currentBackdropBmp != null && !currentBackdropBmp.isRecycled()) {
             return currentBackdropBmp;
         }
 
+        Movie m = movies.get(movieIndex);
         Bitmap newBmp = null;
         File file = new File(SHOWCASE_DIR, m.backdropFile);
         try {
@@ -209,7 +222,7 @@ public final class JellyfinShowcase {
         if (newBmp != null) {
             Bitmap old = currentBackdropBmp;
             currentBackdropBmp = newBmp;
-            loadedBackdropIndex = currentIndex;
+            loadedBackdropIndex = movieIndex;
             if (old != null && old != newBmp && !old.isRecycled()) {
                 old.recycle();
             }

@@ -59,7 +59,7 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     }
 
     static final class Entry {
-        static final int APP = 0, HOME_SETTINGS = 1, CARD = 2, EMPTY = 3;
+        static final int APP = 0, HOME_SETTINGS = 1, CARD = 2, EMPTY = 3, JELLYFIN_MOVIE = 4;
 
         final int kind;
         final String label;
@@ -71,20 +71,26 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         final String name;
         /** Ambient glow colour; 0 until sampled from the banner, or the card's accent from the start. */
         int ambient;
+        final int movieIndex;
 
         Entry(String label, ComponentName component, Drawable banner, Drawable icon) {
-            this(APP, label, component, banner, icon, null, 0);
+            this(APP, label, component, banner, icon, null, 0, null, -1);
         }
 
         Entry(int kind, String label, ComponentName component, Drawable banner, Drawable icon, String caption, int accent) {
+            this(kind, label, component, banner, icon, caption, accent, null, -1);
+        }
+
+        Entry(int kind, String label, ComponentName component, Drawable banner, Drawable icon, String caption, int accent, String fullName, int movieIndex) {
             this.kind = kind;
             this.label = label;
             this.component = component;
             this.pkg = component.getPackageName();
             this.banner = banner;
             this.icon = icon;
-            this.name = caption == null ? label : label + " \u00B7 " + caption;
+            this.name = fullName != null ? fullName : (caption == null ? label : label + " \u00B7 " + caption);
             this.ambient = accent;
+            this.movieIndex = movieIndex;
         }
     }
 
@@ -245,10 +251,6 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             String label = card != null ? card.label : Cards.cleanLabel(String.valueOf(ri.loadLabel(pm)), pkg);
             if (!seen.add(pkg + '\n' + label)) continue;
             Drawable banner = loadBanner(pm, ri);
-            if (pkg.equals(JellyfinShowcase.JELLYFIN_PKG) && JellyfinShowcase.get(ctx).hasMovies()) {
-                Drawable scBanner = JellyfinShowcase.get(ctx).getCurrentTileDrawable(ctx);
-                if (scBanner != null) banner = scBanner;
-            }
             Drawable icon = ri.loadIcon(pm);
             if (card != null) {
                 fresh.add(new Entry(Entry.CARD, label, component, banner, icon, card.caption, card.accent));
@@ -284,6 +286,19 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         for (int i = 0; i < emptySlots; i++) {
             fresh.add(docked + i, new Entry(Entry.EMPTY, "", new ComponentName(ctx, "empty-dock-slot-" + i),
                     null, null, null, 0));
+        }
+        // Insert dedicated Jellyfin Movies Shelf directly after the dock row (Row 1)
+        JellyfinShowcase sc = JellyfinShowcase.get(ctx);
+        if (sc.hasMovies()) {
+            int insertPos = Math.min(dockSize, fresh.size());
+            List<JellyfinShowcase.Movie> movies = sc.getMovies();
+            for (int i = 0; i < movies.size(); i++) {
+                JellyfinShowcase.Movie m = movies.get(i);
+                Bitmap tileBmp = sc.loadTileBitmap(ctx, m.tileFile);
+                Drawable banner = tileBmp != null ? new android.graphics.drawable.BitmapDrawable(ctx.getResources(), tileBmp) : null;
+                ComponentName comp = new ComponentName(JellyfinShowcase.JELLYFIN_PKG, "movie." + m.id);
+                fresh.add(insertPos + i, new Entry(Entry.JELLYFIN_MOVIE, m.name, comp, banner, null, m.year, 0, m.title, i));
+            }
         }
         items.clear();
         items.addAll(fresh);
@@ -363,6 +378,13 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         }
         h.card.setVisibility(View.VISIBLE);
         h.card.setFocusable(true);
+        ViewGroup.MarginLayoutParams nameLp = (ViewGroup.MarginLayoutParams) h.name.getLayoutParams();
+        int cardW = h.card.getLayoutParams().width;
+        int targetW = e.kind == Entry.JELLYFIN_MOVIE ? (int) (cardW * 1.6f) : cardW;
+        if (nameLp.width != targetW) {
+            nameLp.width = targetW;
+            h.name.setLayoutParams(nameLp);
+        }
         h.name.setText(e.name);
         h.name.setVisibility(dockRow && position < dockSize ? View.INVISIBLE : View.VISIBLE);   // the dock has no labels
         boolean focused = h.card.isFocused();   // a rebind after reload() can hit the focused tile
@@ -373,10 +395,6 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         h.card.setTranslationZ(focused && advancedEffects ? 8f * ctx.getResources().getDisplayMetrics().density : 0f);
         h.banner.setScaleX(focused && advancedEffects ? 1.035f : 1f);
         h.banner.setScaleY(focused && advancedEffects ? 1.035f : 1f);
-        if (e.pkg.equals(JellyfinShowcase.JELLYFIN_PKG) && JellyfinShowcase.get(ctx).hasMovies()) {
-            Drawable scBanner = JellyfinShowcase.get(ctx).getCurrentTileDrawable(ctx);
-            if (scBanner != null) e.banner = scBanner;
-        }
         if (e.banner != null) {
             h.banner.setImageDrawable(e.banner);
             h.banner.setVisibility(View.VISIBLE);
@@ -392,6 +410,7 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         }
         h.card.setOnClickListener(v -> launch(e));
         h.card.setOnLongClickListener(v -> {
+            if (e.kind == Entry.JELLYFIN_MOVIE) return true;
             Intent i = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + e.pkg));
             i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             try {
@@ -407,6 +426,23 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         if (e.kind == Entry.HOME_SETTINGS) {
             ctx.startActivity(new Intent(ctx, HomeSettingsActivity.class)
                     .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+            return;
+        }
+        if (e.kind == Entry.JELLYFIN_MOVIE) {
+            PackageManager pm = ctx.getPackageManager();
+            Intent i = pm.getLeanbackLaunchIntentForPackage(JellyfinShowcase.JELLYFIN_PKG);
+            if (i == null) i = pm.getLaunchIntentForPackage(JellyfinShowcase.JELLYFIN_PKG);
+            if (i != null) {
+                i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
+                try {
+                    ctx.startActivity(i);
+                    if (advancedEffects && ctx instanceof Activity) {
+                        ((Activity) ctx).overridePendingTransition(R.anim.app_open_enter, R.anim.app_open_exit);
+                    }
+                } catch (Exception ex) {
+                    Toast.makeText(ctx, ctx.getString(R.string.cant_open, e.label), Toast.LENGTH_SHORT).show();
+                }
+            }
             return;
         }
         Intent i = new Intent(Intent.ACTION_MAIN)
@@ -431,6 +467,16 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     }
 
     int appCount() { return items.size(); }
+
+    public boolean isMovieShelfAt(int position) {
+        return position >= 0 && position < items.size() && items.get(position).kind == Entry.JELLYFIN_MOVIE;
+    }
+
+    public int getMovieIndexAt(int position) {
+        if (position < 0 || position >= items.size()) return -1;
+        Entry e = items.get(position);
+        return e.kind == Entry.JELLYFIN_MOVIE ? e.movieIndex : -1;
+    }
 
     boolean isLibraryAt(int position) { return showLibrary && position == items.size(); }
 
